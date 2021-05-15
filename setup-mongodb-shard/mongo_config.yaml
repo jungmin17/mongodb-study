@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongocfg
+spec:
+  serviceName: mongocfg-svc
+  replicas: 3
+  selector:
+    matchLabels:
+      run: mongocfg
+  template:
+    metadata:
+      labels:
+        run: mongocfg
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: run
+                    operator: In
+                    values:
+                      - mongocfg
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: mongocfg
+          image: mongo:4.2
+          command:
+            - "mongod"
+            - "--configsvr"
+            - "--replSet"
+            - "cfgrs"
+            - "--dbpath"
+            - "/data/db"
+            - "--port"
+            - "27017"
+            - "--noauth"
+            - "--bind_ip_all"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongocfg-svc
+  labels:
+    run: mongocfg
+spec:
+  selector:
+    run: mongocfg
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+  type: ClusterIP
+  clusterIP: None

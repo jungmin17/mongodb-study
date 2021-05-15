@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongosh2
+spec:
+  serviceName: mongosh2-svc
+  replicas: 3
+  selector:
+    matchLabels:
+      run: mongosh2
+  template:
+    metadata:
+      labels:
+        run: mongosh2
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: run
+                    operator: In
+                    values:
+                      - mongosh2
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: mongosh2
+          image: mongo:4.2
+          command:
+            - "mongod"
+            - "--shardsvr"
+            - "--bind_ip_all"
+            - "--replSet"
+            - "rs2"
+            - "--noauth"
+            - "--dbpath"
+            - "/data/db"
+            - "--port"
+            - "27017"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongosh2-svc
+  labels:
+    run: mongosh2
+spec:
+  selector:
+    run: mongosh2
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+  type: ClusterIP
+  clusterIP: None

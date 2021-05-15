@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongos
+spec:
+  serviceName: mongos-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      run: mongos
+  template:
+    metadata:
+      labels:
+        run: mongos
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: run
+                    operator: In
+                    values:
+                      - mongos
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: mongos
+          image: mongo:4.2
+          command:
+            - "mongos"
+            - "--configdb"
+            - "cfgrs"
+            - "--bind_ip_all"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongos-svc-ext
+  labels:
+    run: mongos
+spec:
+  selector:
+    run: mongos
+  externalTrafficPolicy: Cluster
+  ports:
+    - nodePort: 31017
+      port: 27017
+      targetPort: 27017
+      protocol: TCP
+  type: NodePort
