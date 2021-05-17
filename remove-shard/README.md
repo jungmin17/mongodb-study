@@ -213,7 +213,7 @@ true
 
 ### 2. 제거할 shard(rs0) 확인
 
-현재 rs0에는 915개의 chunk가 존재하며, 그 중 2개의 chunk가 ilsa.emp에 해당한다.  
+현재 rs0에는 config 데이터베이스에 915개의 chunk가 존재하며, ilsa 데이터베이스에 2개의 chunk가 존재한다.
 또한 rs0는 ilsa.emp의 primary shard이다.
 
 `primary shard`란?
